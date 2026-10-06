@@ -10,7 +10,8 @@ backend/coverage/
 mobile/.dart_tool/
 mobile/.flutter-plugins
 mobile/.flutter-plugins-dependencies
-mobile/build/
+mobile/build/*
+!mobile/build/web/
 mobile/.pub/
 mobile/.pub-cache/
 mobile/android/app/debug
