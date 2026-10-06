@@ -22,3 +22,6 @@ mobile/android/app/release
 *.iml
 .vscode/
 .DS_Store
+
+.vercel
+.env*
