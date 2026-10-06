@@ -1,17 +1,10 @@
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import '../models/item.dart';
 
 class ApiService extends ChangeNotifier {
-  // Configurable base URL
-  // Default for Android Emulator is http://10.0.2.2:5000
-  // Default for Web/Desktop/iOS Simulator is http://localhost:5000
-  static String baseUrl = kIsWeb
-      ? 'http://localhost:5000/api'
-      : (defaultTargetPlatform == TargetPlatform.android
-          ? 'http://10.0.2.2:5000/api'
-          : 'http://localhost:5000/api');
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const String _collectionPath = 'items';
 
   List<Item> _items = [];
   bool _isLoading = false;
@@ -21,60 +14,62 @@ class ApiService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  /// GET /api/health
+  /// Health check verifying Firestore connection
   Future<bool> checkHealth() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/health')).timeout(const Duration(seconds: 5));
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['success'] == true;
-      }
-      return false;
+      await _firestore.collection(_collectionPath).limit(1).get();
+      return true;
     } catch (e) {
-      debugPrint('[ApiService] Health check failed: $e');
+      debugPrint('[ApiService] Firestore Health check failed: $e');
       return false;
     }
   }
 
-  /// GET /api/items
+  /// Get all items with optional status, category, and search filter
   Future<List<Item>> getItems({String? status, String? category, String? search}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      Uri uri = Uri.parse('$baseUrl/items');
-      Map<String, String> queryParams = {};
+      Query query = _firestore.collection(_collectionPath);
+
       if (status != null && status.isNotEmpty && status != 'All') {
-        queryParams['status'] = status;
+        query = query.where('status', isEqualTo: status);
       }
       if (category != null && category.isNotEmpty && category != 'All') {
-        queryParams['category'] = category;
+        query = query.where('category', isEqualTo: category);
       }
+
+      final snapshot = await query.get();
+
+      List<Item> fetchedItems = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return Item.fromJson(data, docId: doc.id);
+      }).toList();
+
+      // Sort by createdAt descending
+      fetchedItems.sort((a, b) {
+        final aDate = DateTime.tryParse(a.createdAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bDate = DateTime.tryParse(b.createdAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bDate.compareTo(aDate);
+      });
+
+      // Substring search filter
       if (search != null && search.isNotEmpty) {
-        queryParams['search'] = search;
+        final s = search.toLowerCase();
+        fetchedItems = fetchedItems.where((item) {
+          return item.name.toLowerCase().contains(s) ||
+              item.description.toLowerCase().contains(s) ||
+              item.location.toLowerCase().contains(s) ||
+              item.category.toLowerCase().contains(s);
+        }).toList();
       }
 
-      if (queryParams.isNotEmpty) {
-        uri = uri.replace(queryParameters: queryParams);
-      }
-
-      final response = await http.get(uri).timeout(const Duration(seconds: 8));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success'] == true && data['items'] != null) {
-          final List rawList = data['items'];
-          _items = rawList.map((jsonItem) => Item.fromJson(jsonItem)).toList();
-        } else {
-          _items = [];
-        }
-      } else {
-        _errorMessage = 'Server returned status ${response.statusCode}';
-      }
+      _items = fetchedItems;
     } catch (e) {
-      debugPrint('[ApiService] getItems error: $e');
-      _errorMessage = 'Failed to connect to backend REST API: $e';
+      debugPrint('[ApiService] getItems Firestore error: $e');
+      _errorMessage = 'Failed to fetch items from Firestore: $e';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -83,119 +78,81 @@ class ApiService extends ChangeNotifier {
     return _items;
   }
 
-  /// GET /api/items/:id
+  /// Get single item by ID
   Future<Item?> getItem(String id) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/items/$id'));
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success'] == true && data['item'] != null) {
-          return Item.fromJson(data['item']);
-        }
+      final doc = await _firestore.collection(_collectionPath).doc(id).get();
+      if (doc.exists && doc.data() != null) {
+        return Item.fromJson(doc.data()!, docId: doc.id);
       }
       return null;
     } catch (e) {
-      debugPrint('[ApiService] getItem error: $e');
+      debugPrint('[ApiService] getItem Firestore error: $e');
       return null;
     }
   }
 
-  /// POST /api/items
+  /// Create a new lost/found item directly in Firestore
   Future<Item?> createItem({
     required Item item,
     required String? idToken,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/items'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (idToken != null) 'Authorization': 'Bearer $idToken',
-        },
-        body: json.encode(item.toJson()),
-      );
+      final now = DateTime.now().toIso8601String();
+      final itemData = item.toJson();
+      itemData['createdAt'] = item.createdAt.isNotEmpty ? item.createdAt : now;
+      itemData['updatedAt'] = now;
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success'] == true && data['item'] != null) {
-          final newItem = Item.fromJson(data['item']);
-          _items.insert(0, newItem);
-          notifyListeners();
-          return newItem;
-        }
-      } else {
-        final data = json.decode(response.body);
-        throw Exception(data['message'] ?? 'Failed to create item');
-      }
+      final docRef = await _firestore.collection(_collectionPath).add(itemData);
+      final newItem = item.copyWith(id: docRef.id, createdAt: itemData['createdAt'], updatedAt: now);
+
+      _items.insert(0, newItem);
+      notifyListeners();
+      return newItem;
     } catch (e) {
-      debugPrint('[ApiService] createItem error: $e');
+      debugPrint('[ApiService] createItem Firestore error: $e');
       rethrow;
     }
-    return null;
   }
 
-  /// PUT /api/items/:id
+  /// Update an existing item in Firestore
   Future<Item?> updateItem({
     required String id,
     required Item item,
     required String? idToken,
   }) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/items/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (idToken != null) 'Authorization': 'Bearer $idToken',
-        },
-        body: json.encode(item.toJson()),
-      );
+      final now = DateTime.now().toIso8601String();
+      final itemData = item.toJson();
+      itemData['updatedAt'] = now;
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success'] == true && data['item'] != null) {
-          final updated = Item.fromJson(data['item']);
-          final index = _items.indexWhere((i) => i.id == id);
-          if (index != -1) {
-            _items[index] = updated;
-          }
-          notifyListeners();
-          return updated;
-        }
-      } else {
-        final data = json.decode(response.body);
-        throw Exception(data['message'] ?? 'Failed to update item');
+      await _firestore.collection(_collectionPath).doc(id).update(itemData);
+
+      final updatedItem = item.copyWith(id: id, updatedAt: now);
+      final index = _items.indexWhere((i) => i.id == id);
+      if (index != -1) {
+        _items[index] = updatedItem;
       }
+      notifyListeners();
+      return updatedItem;
     } catch (e) {
-      debugPrint('[ApiService] updateItem error: $e');
+      debugPrint('[ApiService] updateItem Firestore error: $e');
       rethrow;
     }
-    return null;
   }
 
-  /// DELETE /api/items/:id
+  /// Delete an item document from Firestore
   Future<bool> deleteItem({
     required String id,
     required String? idToken,
   }) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/items/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (idToken != null) 'Authorization': 'Bearer $idToken',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        _items.removeWhere((item) => item.id == id);
-        notifyListeners();
-        return true;
-      } else {
-        final data = json.decode(response.body);
-        throw Exception(data['message'] ?? 'Failed to delete item');
-      }
+      await _firestore.collection(_collectionPath).doc(id).delete();
+      _items.removeWhere((item) => item.id == id);
+      notifyListeners();
+      return true;
     } catch (e) {
-      debugPrint('[ApiService] deleteItem error: $e');
+      debugPrint('[ApiService] deleteItem Firestore error: $e');
       rethrow;
     }
   }

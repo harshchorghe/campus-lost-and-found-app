@@ -29,18 +29,13 @@ Every day on college campuses, students lose valuable belongings such as laptops
 ## 🏗️ System Architecture
 
 ```
-                    FLUTTER MOBILE APP
-                            |
-          +-----------------+-----------------+
-          |                 |                 |
-          v                 v                 v
-    Firebase Auth      Express API      Firebase Storage
-                            |
-                            v
-                    Firebase Admin SDK
-                            |
-                            v
-                     Cloud Firestore
+                    FLUTTER MOBILE & WEB APP
+                               |
+          +--------------------+--------------------+
+          |                    |                    |
+          v                    v                    v
+    Firebase Auth       Cloud Firestore      Firebase Storage
+ (User Login/Signup)   (Real-time Database)  (Image Cloud Storage)
 ```
 
 ---
@@ -49,9 +44,8 @@ Every day on college campuses, students lose valuable belongings such as laptops
 
 | Layer | Technologies |
 | :--- | :--- |
-| **Frontend Mobile App** | Flutter 3.29, Dart 3.7, Material 3, Provider, HTTP, Image Picker |
-| **Backend REST API** | Node.js v24, Express, Firebase Admin SDK v14, CORS, dotenv |
-| **Database & Cloud** | Firebase Cloud Firestore, Firebase Authentication, Firebase Storage |
+| **Frontend Mobile App** | Flutter 3.29, Dart 3.7, Material 3, Provider, Cloud Firestore SDK, Image Picker |
+| **Database & Cloud Services** | Firebase Cloud Firestore, Firebase Authentication, Firebase Storage |
 
 ---
 
