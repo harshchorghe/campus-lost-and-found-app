@@ -25,12 +25,13 @@ class ApiService extends ChangeNotifier {
     }
   }
 
-  /// Get all items with optional status, category, and search filter
+  /// Get all items with optional status, category, and search filter, merging Firestore + Mock data
   Future<List<Item>> getItems({String? status, String? category, String? search}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
+    List<Item> firestoreItems = [];
     try {
       Query query = _firestore.collection(_collectionPath);
 
@@ -43,49 +44,52 @@ class ApiService extends ChangeNotifier {
 
       final snapshot = await query.get();
 
-      List<Item> fetchedItems = snapshot.docs.map((doc) {
+      firestoreItems = snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         return Item.fromJson(data, docId: doc.id);
       }).toList();
-
-      // Combine with mock items if Firestore is empty or for demo
-      if (fetchedItems.isEmpty) {
-        fetchedItems = List.from(_mockItems);
-        if (status != null && status.isNotEmpty && status != 'All') {
-          fetchedItems = fetchedItems.where((i) => i.status == status).toList();
-        }
-        if (category != null && category.isNotEmpty && category != 'All') {
-          fetchedItems = fetchedItems.where((i) => i.category == category).toList();
-        }
-      }
-
-      // Sort by createdAt descending
-      fetchedItems.sort((a, b) {
-        final aDate = DateTime.tryParse(a.createdAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final bDate = DateTime.tryParse(b.createdAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
-        return bDate.compareTo(aDate);
-      });
-
-      // Substring search filter
-      if (search != null && search.isNotEmpty) {
-        final s = search.toLowerCase();
-        fetchedItems = fetchedItems.where((item) {
-          return item.name.toLowerCase().contains(s) ||
-              item.description.toLowerCase().contains(s) ||
-              item.location.toLowerCase().contains(s) ||
-              item.category.toLowerCase().contains(s);
-        }).toList();
-      }
-
-      _items = fetchedItems;
     } catch (e) {
-      debugPrint('[ApiService] getItems Firestore error: $e');
-      _errorMessage = null;
-      _items = List.from(_mockItems);
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      debugPrint('[ApiService] getItems Firestore notice: $e');
     }
+
+    // Filter mock items according to status and category filters
+    List<Item> mockFiltered = List.from(_mockItems);
+    if (status != null && status.isNotEmpty && status != 'All') {
+      mockFiltered = mockFiltered.where((i) => i.status == status).toList();
+    }
+    if (category != null && category.isNotEmpty && category != 'All') {
+      mockFiltered = mockFiltered.where((i) => i.category == category).toList();
+    }
+
+    // Combine Firestore real items + Mock items (avoiding duplicate IDs)
+    final Set<String> firestoreIds = firestoreItems.map((i) => i.id).toSet();
+    final List<Item> combined = [
+      ...firestoreItems,
+      ...mockFiltered.where((m) => !firestoreIds.contains(m.id)),
+    ];
+
+    // Sort by createdAt descending so newest reports appear first
+    combined.sort((a, b) {
+      final aDate = DateTime.tryParse(a.createdAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bDate = DateTime.tryParse(b.createdAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bDate.compareTo(aDate);
+    });
+
+    // Substring search filter across both Firebase and Mock items
+    List<Item> finalItems = combined;
+    if (search != null && search.isNotEmpty) {
+      final s = search.toLowerCase();
+      finalItems = combined.where((item) {
+        return item.name.toLowerCase().contains(s) ||
+            item.description.toLowerCase().contains(s) ||
+            item.location.toLowerCase().contains(s) ||
+            item.category.toLowerCase().contains(s);
+      }).toList();
+    }
+
+    _items = finalItems;
+    _isLoading = false;
+    notifyListeners();
 
     return _items;
   }
@@ -175,18 +179,49 @@ class ApiService extends ChangeNotifier {
       createdAt: '2026-10-04T12:00:00Z',
       updatedAt: '2026-10-04T12:00:00Z',
     ),
+    Item(
+      id: 'mock_7',
+      name: 'Sony WH-1000XM4 Headphones',
+      description: 'Lost black wireless noise-canceling headphones in a black zip pouch.',
+      category: 'Electronics',
+      status: 'Lost',
+      location: 'Central Library, Quiet Reading Area',
+      date: '2026-10-07',
+      contact: '+91 9876501234',
+      imageUrl: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=600&auto=format&fit=crop',
+      userId: 'mock_user_7',
+      createdAt: '2026-10-07T15:10:00Z',
+      updatedAt: '2026-10-07T15:10:00Z',
+    ),
+    Item(
+      id: 'mock_8',
+      name: 'Casio Scientific Calculator',
+      description: 'Lost FX-991EX ClassWiz scientific calculator during linear algebra lecture.',
+      category: 'Electronics',
+      status: 'Lost',
+      location: 'Math Block, Lecture Hall 104',
+      date: '2026-10-06',
+      contact: 'student.math@campus.edu',
+      imageUrl: 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?w=600&auto=format&fit=crop',
+      userId: 'mock_user_8',
+      createdAt: '2026-10-06T11:00:00Z',
+      updatedAt: '2026-10-06T11:00:00Z',
+    ),
   ];
 
-  /// Get single item by ID
+  /// Get single item by ID (checking Firestore first, then Mock list)
   Future<Item?> getItem(String id) async {
     try {
       final doc = await _firestore.collection(_collectionPath).doc(id).get();
       if (doc.exists && doc.data() != null) {
         return Item.fromJson(doc.data()!, docId: doc.id);
       }
-      return null;
     } catch (e) {
       debugPrint('[ApiService] getItem Firestore error: $e');
+    }
+    try {
+      return _mockItems.firstWhere((item) => item.id == id);
+    } catch (_) {
       return null;
     }
   }
