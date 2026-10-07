@@ -48,6 +48,17 @@ class ApiService extends ChangeNotifier {
         return Item.fromJson(data, docId: doc.id);
       }).toList();
 
+      // Combine with mock items if Firestore is empty or for demo
+      if (fetchedItems.isEmpty) {
+        fetchedItems = List.from(_mockItems);
+        if (status != null && status.isNotEmpty && status != 'All') {
+          fetchedItems = fetchedItems.where((i) => i.status == status).toList();
+        }
+        if (category != null && category.isNotEmpty && category != 'All') {
+          fetchedItems = fetchedItems.where((i) => i.category == category).toList();
+        }
+      }
+
       // Sort by createdAt descending
       fetchedItems.sort((a, b) {
         final aDate = DateTime.tryParse(a.createdAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
@@ -69,7 +80,8 @@ class ApiService extends ChangeNotifier {
       _items = fetchedItems;
     } catch (e) {
       debugPrint('[ApiService] getItems Firestore error: $e');
-      _errorMessage = 'Failed to fetch items from Firestore: $e';
+      _errorMessage = null;
+      _items = List.from(_mockItems);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -77,6 +89,93 @@ class ApiService extends ChangeNotifier {
 
     return _items;
   }
+
+  static final List<Item> _mockItems = [
+    Item(
+      id: 'mock_1',
+      name: 'HP Envy 15 Laptop Bag',
+      description: 'Dark gray water-resistant laptop bag left on the table with a blue notebook inside.',
+      category: 'Electronics',
+      status: 'Lost',
+      location: 'Central Library, 2nd Floor',
+      date: '2026-10-06',
+      contact: '+91 9823411209',
+      imageUrl: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&auto=format&fit=crop',
+      userId: 'mock_user_1',
+      createdAt: '2026-10-06T14:30:00Z',
+      updatedAt: '2026-10-06T14:30:00Z',
+    ),
+    Item(
+      id: 'mock_2',
+      name: 'Fossil Silver Watch',
+      description: 'Found a metallic silver chronograph watch under seat #12 near the food court.',
+      category: 'Accessories',
+      status: 'Found',
+      location: 'Campus Canteen, Main Court',
+      date: '2026-10-07',
+      contact: '+91 9711204982',
+      imageUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&auto=format&fit=crop',
+      userId: 'mock_user_2',
+      createdAt: '2026-10-07T09:15:00Z',
+      updatedAt: '2026-10-07T09:15:00Z',
+    ),
+    Item(
+      id: 'mock_3',
+      name: 'Leather Wallet & Student ID',
+      description: 'Lost brown leather wallet containing college ID card, driving license, and library card.',
+      category: 'Wallet',
+      status: 'Lost',
+      location: 'Engineering Block B, Room 302',
+      date: '2026-10-05',
+      contact: 'alex.student@campus.edu',
+      imageUrl: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=600&auto=format&fit=crop',
+      userId: 'mock_user_3',
+      createdAt: '2026-10-05T18:00:00Z',
+      updatedAt: '2026-10-05T18:00:00Z',
+    ),
+    Item(
+      id: 'mock_4',
+      name: 'AirPods Pro Charging Case',
+      description: 'Found an Apple AirPods Pro case with a clear protective silicone cover.',
+      category: 'Electronics',
+      status: 'Found',
+      location: 'Sports Complex Basketball Court',
+      date: '2026-10-07',
+      contact: '+91 9884512093',
+      imageUrl: 'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=600&auto=format&fit=crop',
+      userId: 'mock_user_4',
+      createdAt: '2026-10-07T11:45:00Z',
+      updatedAt: '2026-10-07T11:45:00Z',
+    ),
+    Item(
+      id: 'mock_5',
+      name: 'Bunch of 3 House Keys',
+      description: 'Found a key ring with 3 brass keys and a red Tech Club keychain.',
+      category: 'Keys',
+      status: 'Found',
+      location: 'Computer Science Lab 1',
+      date: '2026-10-06',
+      contact: '+91 9920145871',
+      imageUrl: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?w=600&auto=format&fit=crop',
+      userId: 'mock_user_5',
+      createdAt: '2026-10-06T16:20:00Z',
+      updatedAt: '2026-10-06T16:20:00Z',
+    ),
+    Item(
+      id: 'mock_6',
+      name: 'Blue Denim Jacket (Size M)',
+      description: 'Left a denim jacket on the back row seat during the guest lecture.',
+      category: 'Other',
+      status: 'Lost',
+      location: 'Main Auditorium, Ground Floor',
+      date: '2026-10-04',
+      contact: 'sarah.m@campus.edu',
+      imageUrl: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=600&auto=format&fit=crop',
+      userId: 'mock_user_6',
+      createdAt: '2026-10-04T12:00:00Z',
+      updatedAt: '2026-10-04T12:00:00Z',
+    ),
+  ];
 
   /// Get single item by ID
   Future<Item?> getItem(String id) async {

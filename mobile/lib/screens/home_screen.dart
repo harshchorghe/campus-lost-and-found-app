@@ -171,19 +171,32 @@ class _HomeScreenState extends State<HomeScreen> {
                                 icon: Icons.search_off_rounded,
                                 onRefresh: _loadItems,
                               )
-                            : ListView.builder(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                itemCount: filteredItems.length,
-                                itemBuilder: (context, index) {
-                                  final item = filteredItems[index];
-                                  return ItemCard(
-                                    item: item,
-                                    onTap: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) => ItemDetailsScreen(itemId: item.id),
-                                        ),
+                            : LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final int crossAxisCount = constraints.maxWidth > 400 ? 2 : 1;
+                                  final double aspectRatio = constraints.maxWidth > 600 ? 1.05 : 0.92;
+
+                                  return GridView.builder(
+                                    physics: const AlwaysScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.all(12),
+                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: crossAxisCount,
+                                      crossAxisSpacing: 12,
+                                      mainAxisSpacing: 12,
+                                      childAspectRatio: aspectRatio,
+                                    ),
+                                    itemCount: filteredItems.length,
+                                    itemBuilder: (context, index) {
+                                      final item = filteredItems[index];
+                                      return ItemCard(
+                                        item: item,
+                                        onTap: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) => ItemDetailsScreen(itemId: item.id),
+                                            ),
+                                          );
+                                        },
                                       );
                                     },
                                   );

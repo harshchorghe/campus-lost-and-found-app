@@ -47,20 +47,33 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                       await apiService.getItems();
                     },
                   )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    itemCount: myItems.length,
-                    itemBuilder: (context, index) {
-                      final item = myItems[index];
-                      return ItemCard(
-                        item: item,
-                        onTap: () async {
-                          await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => ItemDetailsScreen(itemId: item.id),
-                            ),
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final int crossAxisCount = constraints.maxWidth > 400 ? 2 : 1;
+                      final double aspectRatio = constraints.maxWidth > 600 ? 1.05 : 0.92;
+
+                      return GridView.builder(
+                        padding: const EdgeInsets.all(12),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: aspectRatio,
+                        ),
+                        itemCount: myItems.length,
+                        itemBuilder: (context, index) {
+                          final item = myItems[index];
+                          return ItemCard(
+                            item: item,
+                            onTap: () async {
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => ItemDetailsScreen(itemId: item.id),
+                                ),
+                              );
+                              setState(() {});
+                            },
                           );
-                          setState(() {});
                         },
                       );
                     },
