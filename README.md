@@ -1,8 +1,8 @@
-# Campus Lost & Found 📱🎓
+# Campus Lost & Found 🌐📱🎓
 
 > **College Final Year / Practical No. 12 Project for Web and Mobile Application Development**
 
-A complete, full-stack, cross-platform mobile application designed for college campuses to help students report lost items, browse found items, and manage item recovery safely.
+A complete, full-stack **Flutter Web & Mobile Application** designed for college campuses to help students report lost items, browse found items, and manage item recovery safely across browsers and smartphones.
 
 ---
 
@@ -10,19 +10,20 @@ A complete, full-stack, cross-platform mobile application designed for college c
 
 Every day on college campuses, students lose valuable belongings such as laptops, ID cards, wallets, keys, and textbooks. Existing methods for recovering lost items (like WhatsApp group messages or physical notice boards) are unorganized, non-searchable, and inefficient. 
 
-**Campus Lost & Found** solves this problem by offering a centralized mobile application with search, filter, real-time item status tracking, image upload capabilities, and authenticated access.
+**Campus Lost & Found** solves this problem by offering a centralized web and mobile application with search, filter, real-time item status tracking, web image upload capabilities, responsive web layout cards, and authenticated access.
 
 ---
 
 ## ✨ Features
 
+- 🌐 **Flutter Web & Mobile Cross-Platform**: Responsive layout optimized for desktop web browsers (Chrome, Edge, Safari, Firefox) as well as mobile viewports.
 - 🔐 **Firebase Authentication**: Email/Password Registration and Login with token verification.
 - 🔍 **Real-time Search & Filter**: Instant search by item title, category, or location, filtered by *Lost* or *Found*.
-- 📷 **Firebase Storage Image Upload**: Image capture & gallery selection with instant cloud storage preview.
+- 📷 **Firebase Storage & Web Image Upload**: Cross-platform image picking & bytes uploading with instant cloud storage preview.
 - ⚡ **Node.js & Express REST API**: Modular backend handling CRUD operations with Firebase Admin SDK token verification.
 - 🛡️ **Protected Item CRUD**: Only authenticated item owners can update or delete their reports.
 - 👤 **Profile & My Reports**: Manage user profile and view all reported items in one place.
-- 🎨 **Material 3 UI Aesthetics**: Modern, accessible, and responsive design built for college demo presentations.
+- 🎨 **Material 3 Web Layout**: Responsive `WebResponsiveWrapper` layout built for web and mobile demo presentations.
 
 ---
 

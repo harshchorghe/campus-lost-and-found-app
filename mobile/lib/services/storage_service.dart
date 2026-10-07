@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
@@ -24,7 +23,7 @@ class StorageService {
     }
   }
 
-  /// Upload item image to Firebase Storage with ultra-fast 3s timeout & instant base64 fallback
+  /// Upload item image to Firebase Storage with ultra-fast timeout & instant base64 fallback
   Future<String?> uploadItemImage({
     required XFile imageFile,
     required String userId,
@@ -33,16 +32,14 @@ class StorageService {
       final String fileName = '${DateTime.now().millisecondsSinceEpoch}_${imageFile.name}';
       final Reference ref = _storage.ref().child('items/$userId/$fileName');
 
-      UploadTask uploadTask;
-      if (kIsWeb) {
-        final Uint8List bytes = await imageFile.readAsBytes();
-        uploadTask = ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
-      } else {
-        uploadTask = ref.putFile(File(imageFile.path));
-      }
+      final Uint8List bytes = await imageFile.readAsBytes();
+      final UploadTask uploadTask = ref.putData(
+        bytes,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
 
-      // 3-second timeout for Firebase Storage cloud upload
-      final TaskSnapshot snapshot = await uploadTask.timeout(const Duration(seconds: 3));
+      // 5-second timeout for Firebase Storage cloud upload
+      final TaskSnapshot snapshot = await uploadTask.timeout(const Duration(seconds: 5));
       final String downloadUrl = await snapshot.ref.getDownloadURL();
       debugPrint('[StorageService] Firebase Storage upload successful: $downloadUrl');
       return downloadUrl;

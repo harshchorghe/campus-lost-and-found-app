@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/item_card.dart';
 import '../widgets/loading_widget.dart';
+import '../widgets/web_responsive_wrapper.dart';
 import 'item_details_screen.dart';
 
 class MyReportsScreen extends StatefulWidget {
@@ -33,35 +34,38 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
       ),
-      body: apiService.isLoading
-          ? const LoadingWidget(message: 'Loading your reports...')
-          : myItems.isEmpty
-              ? EmptyStateWidget(
-                  title: 'No Reports Found',
-                  message: 'You have not reported any lost or found items yet.',
-                  icon: Icons.post_add_rounded,
-                  onRefresh: () async {
-                    await apiService.getItems();
-                  },
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  itemCount: myItems.length,
-                  itemBuilder: (context, index) {
-                    final item = myItems[index];
-                    return ItemCard(
-                      item: item,
-                      onTap: () async {
-                        await Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ItemDetailsScreen(itemId: item.id),
-                          ),
-                        );
-                        setState(() {});
-                      },
-                    );
-                  },
-                ),
+      body: WebResponsiveWrapper(
+        maxWidth: 850,
+        child: apiService.isLoading
+            ? const LoadingWidget(message: 'Loading your reports...')
+            : myItems.isEmpty
+                ? EmptyStateWidget(
+                    title: 'No Reports Found',
+                    message: 'You have not reported any lost or found items yet.',
+                    icon: Icons.post_add_rounded,
+                    onRefresh: () async {
+                      await apiService.getItems();
+                    },
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    itemCount: myItems.length,
+                    itemBuilder: (context, index) {
+                      final item = myItems[index];
+                      return ItemCard(
+                        item: item,
+                        onTap: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ItemDetailsScreen(itemId: item.id),
+                            ),
+                          );
+                          setState(() {});
+                        },
+                      );
+                    },
+                  ),
+      ),
     );
   }
 }

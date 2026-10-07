@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../widgets/web_responsive_wrapper.dart';
 import 'home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -87,14 +89,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
         foregroundColor: const Color(0xFF1E293B),
       ),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+        child: WebResponsiveWrapper(
+          maxWidth: 480,
+          showCardStyle: kIsWeb,
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                   const Text(
                     'Join Campus Lost & Found',
                     style: TextStyle(
@@ -273,6 +278,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }

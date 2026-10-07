@@ -1,12 +1,12 @@
 {
-    "name": "mobile",
-    "short_name": "mobile",
+    "name": "Campus Lost & Found",
+    "short_name": "Campus L&F",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#3F51B5",
+    "theme_color": "#3F51B5",
+    "description": "Campus Lost & Found Web Application",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

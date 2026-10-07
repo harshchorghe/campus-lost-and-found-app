@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/loading_widget.dart';
 import '../widgets/status_chip.dart';
+import '../widgets/web_responsive_wrapper.dart';
 import 'edit_item_screen.dart';
 
 class ItemDetailsScreen extends StatefulWidget {
@@ -153,7 +154,9 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: CustomScrollView(
+      body: WebResponsiveWrapper(
+        maxWidth: 800,
+        child: CustomScrollView(
         slivers: [
           // Large Image Header SliverAppBar
           SliverAppBar(
@@ -410,6 +413,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

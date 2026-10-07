@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,6 +7,7 @@ import '../models/item.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/storage_service.dart';
+import '../widgets/web_responsive_wrapper.dart';
 
 class AddItemScreen extends StatefulWidget {
   const AddItemScreen({super.key});
@@ -29,6 +29,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   DateTime _selectedDate = DateTime.now();
   
   XFile? _pickedImage;
+  Uint8List? _imageBytes;
   bool _isUploading = false;
   final StorageService _storageService = StorageService();
 
@@ -56,8 +57,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
   Future<void> _pickImage(ImageSource source) async {
     final image = await _storageService.pickImage(source: source);
     if (image != null) {
+      final bytes = await image.readAsBytes();
       setState(() {
         _pickedImage = image;
+        _imageBytes = bytes;
       });
     }
   }
@@ -162,62 +165,59 @@ class _AddItemScreenState extends State<AddItemScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Image Picker Box
-              GestureDetector(
-                onTap: () {
-                  _showImageSourcePicker();
-                },
-                child: Container(
-                  height: 180,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: _pickedImage != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: kIsWeb
-                              ? Image.network(
-                                  _pickedImage!.path,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                )
-                              : Image.file(
-                                  File(_pickedImage!.path),
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                ),
-                        )
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.add_a_photo_outlined,
-                              size: 48,
-                              color: Theme.of(context).primaryColor,
+      body: WebResponsiveWrapper(
+        maxWidth: 750,
+        showCardStyle: kIsWeb,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Image Picker Box
+                GestureDetector(
+                  onTap: () {
+                    _showImageSourcePicker();
+                  },
+                  child: Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: _imageBytes != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.memory(
+                              _imageBytes!,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Tap to add item image',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.add_a_photo_outlined,
+                                size: 48,
+                                color: Theme.of(context).primaryColor,
                               ),
-                            ),
-                          ],
-                        ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Tap to add item image',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
               // Status Dropdown (Lost / Found)
               DropdownButtonFormField<String>(
@@ -382,7 +382,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   void _showImageSourcePicker() {

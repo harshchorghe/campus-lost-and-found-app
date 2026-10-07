@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,6 +7,7 @@ import '../models/item.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/storage_service.dart';
+import '../widgets/web_responsive_wrapper.dart';
 
 class EditItemScreen extends StatefulWidget {
   final Item item;
@@ -31,6 +31,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
   late DateTime _selectedDate;
 
   XFile? _newPickedImage;
+  Uint8List? _newPickedImageBytes;
   bool _isUpdating = false;
   final StorageService _storageService = StorageService();
 
@@ -76,8 +77,10 @@ class _EditItemScreenState extends State<EditItemScreen> {
   Future<void> _pickImage(ImageSource source) async {
     final image = await _storageService.pickImage(source: source);
     if (image != null) {
+      final bytes = await image.readAsBytes();
       setState(() {
         _newPickedImage = image;
+        _newPickedImageBytes = bytes;
       });
     }
   }
@@ -176,46 +179,47 @@ class _EditItemScreenState extends State<EditItemScreen> {
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Image Picker / Preview
-              GestureDetector(
-                onTap: _showImageSourcePicker,
-                child: Container(
-                  height: 180,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade300),
+      body: WebResponsiveWrapper(
+        maxWidth: 750,
+        showCardStyle: kIsWeb,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Image Picker / Preview
+                GestureDetector(
+                  onTap: _showImageSourcePicker,
+                  child: Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: _newPickedImageBytes != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.memory(_newPickedImageBytes!, fit: BoxFit.cover, width: double.infinity),
+                          )
+                        : widget.item.imageUrl.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.network(widget.item.imageUrl, fit: BoxFit.cover, width: double.infinity),
+                              )
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_a_photo_outlined, size: 48, color: Theme.of(context).primaryColor),
+                                  const SizedBox(height: 8),
+                                  Text('Tap to change image', style: TextStyle(color: Colors.grey[600])),
+                                ],
+                              ),
                   ),
-                  child: _newPickedImage != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: kIsWeb
-                              ? Image.network(_newPickedImage!.path, fit: BoxFit.cover, width: double.infinity)
-                              : Image.file(File(_newPickedImage!.path), fit: BoxFit.cover, width: double.infinity),
-                        )
-                      : widget.item.imageUrl.isNotEmpty
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: Image.network(widget.item.imageUrl, fit: BoxFit.cover, width: double.infinity),
-                            )
-                          : Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add_a_photo_outlined, size: 48, color: Theme.of(context).primaryColor),
-                                const SizedBox(height: 8),
-                                Text('Tap to change image', style: TextStyle(color: Colors.grey[600])),
-                              ],
-                            ),
                 ),
-              ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
               // Status Dropdown
               DropdownButtonFormField<String>(
@@ -319,7 +323,8 @@ class _EditItemScreenState extends State<EditItemScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   void _showImageSourcePicker() {
